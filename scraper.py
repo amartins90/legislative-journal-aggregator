@@ -5,37 +5,44 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-LEGISLATIVE_HOUSE_URL = 'https://imprensaoficial.jundiai.sp.gov.br/'
+# TODO add logging
+# TODO add pydantic
 
-session = requests.Session()
-session.headers.update({
-    "User-Agent": "Mozilla/5.0"
-})
+class Scraper:
 
-document_urls = []
+    def __init__(self, house_url):
+        self.house_url = house_url
+        return
 
-response = session.get(LEGISLATIVE_HOUSE_URL)
-response.raise_for_status()
+    def get_latest_editions(self):
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0"
+        })
+        response = session.get(self.house_url)
+        response.raise_for_status()
 
-journal_pattern = r'^' + re.escape(LEGISLATIVE_HOUSE_URL + "edicao-")  + r'\d+/$'
+        document_urls = []
+        journal_pattern = r'^' + re.escape(self.house_url + "edicao-")  + r'\d+/$'
+        soup = BeautifulSoup(response.text, "html.parser")
+        for a in soup.find_all("a", href=True):
+            if re.fullmatch(journal_pattern, a["href"]):
+                document_urls.append(a["href"])
 
-soup = BeautifulSoup(response.text, "html.parser")
-for a in soup.find_all("a", href=True):
-    href = a["href"]
+        return document_urls
 
-    if re.fullmatch(journal_pattern, href):
-        document_urls.append(href)
+    def persist_files(self):
+        return
 
+# journal_pattern = r'^' + re.escape(LEGISLATIVE_HOUSE_URL + "wp-content/uploads/")  + r'.*\.pdf$'
 
-journal_pattern = r'^' + re.escape(LEGISLATIVE_HOUSE_URL + "wp-content/uploads/")  + r'.*\.pdf$'
+# for document_url in document_urls:
 
-for document_url in document_urls:
+#     response = session.get(document_url)
+#     response.raise_for_status()
 
-    response = session.get(document_url)
-    response.raise_for_status()
-
-    document_soup = BeautifulSoup(response.text, "html.parser")
-    for a in document_soup.find_all("a", href=True):
-        href = a["href"]
-        if re.fullmatch(journal_pattern, href):
-            print(href)
+#     document_soup = BeautifulSoup(response.text, "html.parser")
+#     for a in document_soup.find_all("a", href=True):
+#         href = a["href"]
+#         if re.fullmatch(journal_pattern, href):
+#             print(href)
